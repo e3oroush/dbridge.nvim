@@ -20,6 +20,9 @@ M.getTable = function(data, panel)
 		}
 		table.insert(columns, col)
 	end
+	vim.api.nvim_set_option_value("modifiable", true, { buf = panel.bufnr })
+	vim.api.nvim_buf_set_lines(panel.bufnr, 0, -1, false, {})
+	vim.api.nvim_set_option_value("modifiable", false, { buf = panel.bufnr })
 	local tbl = NuiTable({
 		bufnr = panel.bufnr,
 		ns_id = panel.ns_id,

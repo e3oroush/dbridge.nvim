@@ -5,6 +5,7 @@ local NuiTree = require("nui.tree")
 local api = require("dbridge.api")
 local dbconnection = require("dbridge.dbconnection")
 local queryResult = require("dbridge.query_result")
+local config = require("dbridge.config")
 
 M = {}
 
@@ -17,8 +18,29 @@ local function getPanels()
 	return { left_panel = left_panel, bottom_panel = bottom_panel, main_panel = main_panel }
 end
 
+local function saveConnection(connectionConfig)
+	local path = config.connectionsPath .. "/" .. connectionConfig.name
+	local file = io.open(path, "w")
+	if file then
+		file:write(vim.fn.json_encode(connectionConfig))
+		file:close()
+	end
+end
+local function applyConfig(connectionConfig)
+	M.addNewRootNode(connectionConfig)
+	saveConnection(connectionConfig)
+	M.tree:render()
+end
+
+local function initStoredConnections()
+	local connections = dbconnection.getStoredConnections()
+	for _, con in ipairs(connections) do
+		M.addNewRootNode(con)
+	end
+	M.tree:render()
+end
+
 M.init = function()
-	-- print("call init function")
 	local map_options = { noremap = true, nowait = true }
 	local panels = getPanels()
 
@@ -82,27 +104,31 @@ M.init = function()
 		if node == nil then
 			return
 		end
+		-- if the node is a root data base
 		if node.connectionConfig then
 			if not node.loaded then
-				local uri = node.connectionConfig.uri
-				local adapter = node.connectionConfig.adapter
-				local tables = dbconnection.addConnection(uri, adapter)
+				local conId = dbconnection.addConnection(node.connectionConfig)
+				node.connectionConfig.conId = conId
+				local tables = dbconnection.getTables(conId)
 				for _, tableName in ipairs(tables) do
 					tree:add_node(
 						NuiTree.Node({
 							text = tableName,
-							get_columns_query = "get_columns?uri=$uri&table_name=$tableName",
-							get_table_query = "query_table?uri=$uri&table_name=$tableName",
-							args = { uri = uri, tableName = tableName },
+							get_columns_query = "get_columns?connection_id=$conId&table_name=$tableName",
+							get_table_query = "query_table?connection_id=$conId&table_name=$tableName",
+							args = { conId = conId, tableName = tableName },
 							loaded = false,
 						}),
 						node:get_id()
 					)
 				end
 				node.loaded = true
+				node:expand()
+				tree:render()
 			end
 			M.selectedDbConfig = node.connectionConfig
 		end
+		-- if node is a table fetch the it columns and expand them
 		if node.get_columns_query ~= nil and not node.loaded then
 			local nodes = api.getRequest(node.get_columns_query, node.args)
 			local nodesList = vim.json.decode(nodes)
@@ -113,6 +139,7 @@ M.init = function()
 			node:expand()
 			tree:render()
 		end
+		-- if node is a table query a sample data
 		if node.get_table_query ~= nil then
 			local result = api.getRequest(node.get_table_query, node.args)
 			local tbl = queryResult.getTable(vim.json.decode(result), panels.bottom_panel)
@@ -124,7 +151,7 @@ M.init = function()
 		local lines = vim.api.nvim_buf_get_lines(panels.main_panel.bufnr, 0, -1, false)
 		local query = table.concat(lines or {}, "\n")
 		-- TODO: try to connect if selectedDbConfig is nil
-		local data = { query = query, uri = M.selectedDbConfig.uri }
+		local data = { query = query, conId = M.selectedDbConfig.conId }
 		local result = api.postRequest("run_query", data)
 		local tbl = queryResult.getTable(vim.json.decode(result), panels.bottom_panel)
 		tbl:render()
@@ -147,33 +174,13 @@ M.init = function()
 		end)
 	end
 	vim.keymap.set("n", "a", function()
-		local function applyConfig(connectionConfig)
-			print("applyConfig")
-			M.addNewRootNode(connectionConfig)
-			tree:render()
-		end
 		dbconnection.newDbConnection(applyConfig)
-		-- local nodeId = M.addNewRootNode(connectionConfig)
-		-- local tables = dbconnection.addConnection(uri)
-		-- for _, tableName in ipairs(tables) do
-		-- 	tree:add_node(
-		-- 		NuiTree.Node({
-		-- 			text = tableName,
-		-- 			get_columns_query = "get_columns?uri=$uri&table_name=$tableName",
-		-- 			get_table_query = "query_table?uri=$uri&table_name=$tableName",
-		-- 			args = { uri = uri, tableName = tableName },
-		-- 			loaded = false,
-		-- 		}),
-		-- 		nodeId
-		-- 	)
-		-- end
 	end, { buffer = panels.left_panel.bufnr })
 	M.panels = panels
 	M.tree = tree
 	M.layout = layout
+	initStoredConnections()
 end
-
-M.init()
 
 M.addNewRootNode = function(connectionConfig)
 	local node = NuiTree.Node({
@@ -186,6 +193,7 @@ M.addNewRootNode = function(connectionConfig)
 	return node:get_id()
 end
 
+M.init()
 vim.api.nvim_create_user_command("Dbxplore", function()
 	if vim.g.dbridge_loaded ~= 1 then
 		M.layout:mount()

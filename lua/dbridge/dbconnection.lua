@@ -1,5 +1,6 @@
 local api = require("dbridge.api")
 local Popup = require("nui.popup")
+local Config = require("dbridge.config")
 local event = require("nui.utils.autocmd").event
 M = {}
 
@@ -57,10 +58,12 @@ local function getPopup(onEnter, onLeave)
 	return popup
 end
 
-M.addConnection = function(uri, adapter)
-	local body = { adapter = adapter, uri = uri }
-	api.postRequest("connections", body)
-	local result = api.getRequest("get_tables?uri=$uri", { uri = uri })
+M.addConnection = function(config)
+	local conId = api.postRequest("connections", config)
+	return conId
+end
+M.getTables = function(conId)
+	local result = api.getRequest("get_tables?connection_id=$conId", { conId = conId })
 	return vim.json.decode(result)
 end
 local function initText()
@@ -76,6 +79,26 @@ M.newDbConnection = function(applyConfig)
 	end
 	local popup = getPopup(initText, getInputConfig)
 	popup:mount()
+end
+
+M.getStoredConnections = function()
+	local dirPath = Config.connectionsPath
+	local handle = vim.uv.fs_scandir(dirPath)
+	local connections = {}
+	while true do
+		local name, type = vim.uv.fs_scandir_next(handle)
+		if not name then
+			break
+		end
+
+		-- Ensure only files are opened
+		if type == "file" then
+			local filePath = dirPath .. "/" .. name
+			local content = vim.fn.readfile(filePath)
+			table.insert(connections, vim.fn.json_decode(content))
+		end
+	end
+	return connections
 end
 
 return M
