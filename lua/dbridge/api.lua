@@ -27,7 +27,6 @@ M.postRequest = function(path, data)
 		cmd = cmd .. " -d '$body'"
 		cmd = string.gsub(cmd, "%$body", body)
 	end
-	vim.fn.setreg("+", cmd)
 	return runCmd(cmd)
 end
 

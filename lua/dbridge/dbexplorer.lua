@@ -151,7 +151,7 @@ M.init = function()
 		local lines = vim.api.nvim_buf_get_lines(panels.main_panel.bufnr, 0, -1, false)
 		local query = table.concat(lines or {}, "\n")
 		-- TODO: try to connect if selectedDbConfig is nil
-		local data = { query = query, conId = M.selectedDbConfig.conId }
+		local data = { query = query, connection_id = M.selectedDbConfig.conId }
 		local result = api.postRequest("run_query", data)
 		local tbl = queryResult.getTable(vim.json.decode(result), panels.bottom_panel)
 		tbl:render()

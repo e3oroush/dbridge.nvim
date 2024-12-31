@@ -14,7 +14,7 @@ end
 
 init()
 
-local defaultConfig = { serverUrl = "http://localhost:8000/", connectionsPath = connectionsPath }
+local defaultConfig = { serverUrl = "http://localhost:3695/", connectionsPath = connectionsPath }
 
 M = vim.tbl_extend("keep", M, defaultConfig)
 

@@ -58,9 +58,13 @@ local function getPopup(onEnter, onLeave)
 	return popup
 end
 
+--- Connects to the dbridge server and returns the uuid connection
+---@param config table
+---@return string
 M.addConnection = function(config)
-	local conId = api.postRequest("connections", config)
-	return conId
+	local conConfigRet = api.postRequest("connections", config)
+	local conConfig = vim.fn.json_decode(conConfigRet)
+	return conConfig.connection_id
 end
 M.getTables = function(conId)
 	local result = api.getRequest("get_tables?connection_id=$conId", { conId = conId })
