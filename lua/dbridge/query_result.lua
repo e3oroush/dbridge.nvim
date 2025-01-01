@@ -1,10 +1,13 @@
 local NuiTable = require("nui.table")
+local Split = require("nui.split")
 local Text = require("nui.text")
 
-M = {}
+QueryResult = {}
 
-M.getTable = function(data, panel)
+QueryResult.renderResult = function(dataStr)
+	local data = vim.json.decode(dataStr)
 	local columns = {}
+	local panel = QueryResult.panel
 	-- just show the top 5
 	local topn = vim.fn.min({ 5, #data })
 	data = vim.list_slice(data, 1, topn)
@@ -29,7 +32,10 @@ M.getTable = function(data, panel)
 		columns = columns,
 		data = data,
 	})
-	return tbl
+	tbl:render()
 end
 
-return M
+QueryResult.init = function()
+	QueryResult.panel = Split({})
+end
+return QueryResult

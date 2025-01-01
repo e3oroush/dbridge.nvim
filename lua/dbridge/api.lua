@@ -1,5 +1,5 @@
 local config = require("dbridge.config")
-M = {}
+Api = {}
 
 local url = config.serverUrl
 local function runCmd(cmd)
@@ -11,7 +11,7 @@ local function runCmd(cmd)
 	handle:close()
 	return result
 end
-M.getRequest = function(path, args)
+Api.getRequest = function(path, args)
 	args = args or {}
 	for k, v in pairs(args) do
 		path = string.gsub(path, "%$" .. k, vim.fn.shellescape(v))
@@ -20,7 +20,7 @@ M.getRequest = function(path, args)
 	local cmd = "curl --silent --no-buffer -X GET '" .. getUrl .. "'"
 	return runCmd(cmd)
 end
-M.postRequest = function(path, data)
+Api.postRequest = function(path, data)
 	local cmd = "curl --silent --no-buffer -X POST " .. url .. path .. " -H 'Content-Type: application/json'"
 	if data ~= nil then
 		local body = vim.fn.json_encode(data)
@@ -30,4 +30,4 @@ M.postRequest = function(path, data)
 	return runCmd(cmd)
 end
 
-return M
+return Api

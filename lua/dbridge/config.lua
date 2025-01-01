@@ -3,7 +3,7 @@ local nvim_data_dir = vim.fn.stdpath("data")
 local rootPath = nvim_data_dir .. "/dbridge.nvim"
 local connectionsPath = rootPath .. "/connections"
 local queriesPath = rootPath .. "/queries"
-M = {}
+Config = {}
 
 local init = function()
 	fileUtils.safeMkdir(rootPath)
@@ -13,9 +13,13 @@ end
 
 init()
 
-local defaultConfig =
-	{ serverUrl = "http://localhost:3695/", connectionsPath = connectionsPath, queriesPath = queriesPath }
+local defaultConfig = {
+	serverUrl = "http://localhost:3695/",
+	connectionsPath = connectionsPath,
+	queriesPath = queriesPath,
+	mapOptions = { noremap = true, nowait = true },
+}
 
-M = vim.tbl_extend("keep", M, defaultConfig)
+Config = vim.tbl_extend("keep", Config, defaultConfig)
 
-return M
+return Config

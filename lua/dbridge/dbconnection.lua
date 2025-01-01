@@ -1,10 +1,18 @@
 local api = require("dbridge.api")
+local NodeUtils = require("dbridge.node_utils")
+local FileUtils = require("dbridge.file_utils")
 local Popup = require("nui.popup")
 local Config = require("dbridge.config")
 local event = require("nui.utils.autocmd").event
-M = {}
+DbConnection = {}
 
-local function getPopup(onEnter, onLeave)
+---@class connectionConfig
+---@field name string
+---@field conId string
+---@field uri string
+---@field storedQueriesNodeId string
+
+local function getPopUp()
 	local popup = Popup({
 		position = "50%",
 		size = {
@@ -26,7 +34,7 @@ local function getPopup(onEnter, onLeave)
 			text = {
 				top = " Enter db configurations ",
 				top_align = "center",
-				bottom = "q to exit",
+				bottom = "q to save and exit",
 				bottom_align = "left",
 			},
 		},
@@ -40,6 +48,10 @@ local function getPopup(onEnter, onLeave)
 		},
 	})
 	popup:map("n", "q", ":q<CR>")
+	return popup
+end
+local function getNewConPopup(onEnter, onLeave)
+	local popup = getPopUp()
 	popup:on(event.BufWinEnter, function()
 		if onEnter ~= nil then
 			local text = onEnter()
@@ -58,15 +70,30 @@ local function getPopup(onEnter, onLeave)
 	return popup
 end
 
+DbConnection.editConnection = function(connectionConfig)
+	local conPath = NodeUtils.getConnectionPath(connectionConfig.name)
+	local popup = getPopUp()
+	local content = vim.fn.readfile(conPath)
+	vim.api.nvim_buf_set_lines(popup.bufnr, 0, -1, false, content)
+	popup:on("BufLeave", function()
+		local editedConfig = vim.api.nvim_buf_get_lines(popup.bufnr, 0, -1, false)
+		vim.fn.writefile(editedConfig, conPath)
+	end)
+	popup:map("n", "q", function()
+		popup:unmount()
+	end)
+	popup:mount()
+end
+
 --- Connects to the dbridge server and returns the uuid connection
 ---@param config table
 ---@return string
-M.addConnection = function(config)
+DbConnection.addConnection = function(config)
 	local conConfigRet = api.postRequest("connections", config)
 	local conConfig = vim.fn.json_decode(conConfigRet)
 	return conConfig.connection_id
 end
-M.getTables = function(conId)
+DbConnection.getTables = function(conId)
 	local result = api.getRequest("get_tables?connection_id=$conId", { conId = conId })
 	return vim.json.decode(result)
 end
@@ -75,17 +102,17 @@ local function initText()
 	return vim.fn.json_encode(config)
 end
 
-M.newDbConnection = function(applyConfig)
+DbConnection.newDbConnection = function(applyConfig)
 	local function getInputConfig(lines)
 		local content = table.concat(lines, "\n")
 		local config = vim.fn.json_decode(content)
 		applyConfig(config)
 	end
-	local popup = getPopup(initText, getInputConfig)
+	local popup = getNewConPopup(initText, getInputConfig)
 	popup:mount()
 end
 
-M.getStoredConnections = function()
+DbConnection.getStoredConnections = function()
 	local dirPath = Config.connectionsPath
 	local handle = vim.uv.fs_scandir(dirPath)
 	local connections = {}
@@ -105,4 +132,16 @@ M.getStoredConnections = function()
 	return connections
 end
 
-return M
+--- Save a new connection config. It also create an empty directory for the query path
+---@param connectionConfig connectionConfig
+DbConnection.saveConnection = function(connectionConfig)
+	local conConfigPath = NodeUtils.getConnectionPath(connectionConfig.name)
+	local queryPath = NodeUtils.getQueryPath(connectionConfig.name)
+	local file = io.open(conConfigPath, "w")
+	if file then
+		file:write(vim.fn.json_encode(connectionConfig))
+		file:close()
+	end
+	FileUtils.safeMkdir(queryPath)
+end
+return DbConnection
