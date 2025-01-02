@@ -62,6 +62,9 @@ QueryEditor.init = function()
 	local panel = Split({
 		buf_options = { filetype = "sql", buftype = "", bufhidden = "wipe", swapfile = false },
 	})
+	panel:on("BufEnter", function()
+		vim.opt_local.commentstring = "-- %s"
+	end)
 	-- make the buffer exit without saving
 	panel:on("QuitPre", function()
 		vim.api.nvim_set_option_value("buftype", "nofile", { buf = panel.bufnr })
