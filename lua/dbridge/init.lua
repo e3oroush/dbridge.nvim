@@ -78,7 +78,9 @@ local function initKeyMappings()
 	QueryEditor.panel:map("n", "<leader>r", function()
 		local data = QueryEditor.executeQuery(getActiveConnectionConId())
 		QueryResult.renderResult(data)
-	end, Config.mapOptions)
+	end, mapOptions)
+	QueryResult.panel:map("n", "n", QueryResult.handleNext, mapOptions)
+	QueryResult.panel:map("n", "p", QueryResult.handlePrev, mapOptions)
 end
 
 M.init = function()
