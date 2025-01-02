@@ -18,6 +18,37 @@ end
 local function addNewConnection()
 	Dbconnection.newDbConnection(applyConfig)
 end
+--- returns the active connectionConfig based on the tree connection expansion
+---@return connectionConfig|nil
+local function getActiveConnection()
+	local node = DbExplorer.getExpandedRootNode()
+	if node == nil then
+		return
+	end
+	return node.connectionConfig
+end
+
+--- Returns the active connection name
+---@return string | nil
+local function getActiveConnectionName()
+	local selected = nil
+	local connectionConfig = getActiveConnection()
+	if connectionConfig ~= nil then
+		selected = connectionConfig.name
+	end
+	return selected
+end
+
+--- Returns the active connection uri
+---@return string | nil
+local function getActiveConnectionConId()
+	local selected = nil
+	local connectionConfig = getActiveConnection()
+	if connectionConfig ~= nil then
+		selected = connectionConfig.conId
+	end
+	return selected
+end
 local function initKeyMappings()
 	local mapOptions = { noremap = true, nowait = true }
 	Dbexplorer.panel:map("n", "a", addNewConnection, mapOptions)
@@ -27,37 +58,27 @@ local function initKeyMappings()
 		if resultedReturn == nil then
 			return
 		end
-		-- the selected node is a connection node
-		if resultedReturn.selectedDbConfig ~= nil then
-			M.selectedDbConfig = resultedReturn.selectedDbConfig
-		end
+		local node = resultedReturn.node
 		-- the selected node is a table
-		if resultedReturn.sampleData ~= nil then
-			QueryResult.renderResult(resultedReturn.sampleData)
-			QueryEditor.clearQueryWindow()
+		if node.nodeType == NodeUtils.NodeTypes.TABLE then
+			if node.get_table_query ~= nil then
+				local sampleData = Api.getRequest(node.get_table_query, node.args)
+				QueryResult.renderResult(sampleData)
+				QueryEditor.clearQueryWindow(node, DbExplorer.tree)
+			end
 		end
 		-- the selected node is saved query file
-		if resultedReturn.saveQueryNode ~= nil then
-			QueryEditor.openSavedQery(resultedReturn.saveQueryNode, Dbexplorer.tree)
+		if node.nodeType == NodeUtils.NodeTypes.SAVED_QUERY then
+			QueryEditor.openSavedQery(node, Dbexplorer.tree)
 		end
-		if resultedReturn.addQueryNode ~= nil then
-			QueryEditor.addSavedQuery(resultedReturn.addQueryNode, Dbexplorer.tree)
+		if node.nodeType == NodeUtils.NodeTypes.NEW_SAVED_QUERY then
+			QueryEditor.addSavedQuery(node, Dbexplorer.tree)
 		end
 	end, mapOptions)
 	QueryEditor.panel:map("n", "<leader>r", function()
-		local dataStr = QueryEditor.executeQuery(M.selectedDbConfig)
-		QueryResult.renderResult(dataStr)
+		local data = QueryEditor.executeQuery(getActiveConnectionConId())
+		QueryResult.renderResult(data)
 	end, Config.mapOptions)
-end
-
---- Returns the active connection name
----@return string | nil
-M.getActiveConnectionName = function()
-	local selected = nil
-	if M.selectedDbConfig ~= nil then
-		selected = M.selectedDbConfig.name
-	end
-	return selected
 end
 
 M.init = function()

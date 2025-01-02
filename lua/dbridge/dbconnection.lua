@@ -1,9 +1,9 @@
-local api = require("dbridge.api")
+local Api = require("dbridge.api")
 local NodeUtils = require("dbridge.node_utils")
 local FileUtils = require("dbridge.file_utils")
 local Popup = require("nui.popup")
 local Config = require("dbridge.config")
-local event = require("nui.utils.autocmd").event
+local Event = require("nui.utils.autocmd").event
 DbConnection = {}
 
 ---@class connectionConfig
@@ -11,6 +11,14 @@ DbConnection = {}
 ---@field conId string
 ---@field uri string
 ---@field storedQueriesNodeId string
+
+---@class DatabaseCatalog
+---@field name string
+---@field schemas Schema[]
+
+---@class Schema
+---@field name string
+---@field tables string[]
 
 local function getPopUp()
 	local popup = Popup({
@@ -52,7 +60,7 @@ local function getPopUp()
 end
 local function getNewConPopup(onEnter, onLeave)
 	local popup = getPopUp()
-	popup:on(event.BufWinEnter, function()
+	popup:on(Event.BufWinEnter, function()
 		if onEnter ~= nil then
 			local text = onEnter()
 			local lines = vim.split(text, "\n", { plain = true })
@@ -89,13 +97,17 @@ end
 ---@param config table
 ---@return string
 DbConnection.addConnection = function(config)
-	local conConfigRet = api.postRequest("connections", config)
-	local conConfig = vim.fn.json_decode(conConfigRet)
+	local conConfig = Api.postRequest("connections", config)
 	return conConfig.connection_id
 end
 DbConnection.getTables = function(conId)
-	local result = api.getRequest("get_tables?connection_id=$conId", { conId = conId })
-	return vim.json.decode(result)
+	return Api.getRequest(Api.path.getTables .. "?connection_id=$conId", { conId = conId })
+end
+--- Get all databases with their schema and tables using the current connection user credentials
+---@param conId string
+---@return DatabaseCatalog[]
+DbConnection.getAllDbCatalogs = function(conId)
+	return Api.getRequest(Api.path.getAll .. "?connection_id=$conId", { conId = conId })
 end
 local function initText()
 	local config = { name = "test_db", adapter = "sqlite", uri = "" }

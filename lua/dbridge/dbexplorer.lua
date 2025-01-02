@@ -8,12 +8,13 @@ local NodeUtils = require("dbridge.node_utils")
 DbExplorer = {}
 
 --- returns a table with Nodes of saved queries stored on disk
----@param connectionConfig table
+---@param connectionConfig connectionConfig
 ---@return NuiTreeNode[] nodes a table that has a list nodes for saved query
 local function getSavedQueries(connectionConfig)
 	local dirPath = NodeUtils.getQueryPath(connectionConfig.name)
 	local queryFiles = FileUtils.getFilesInDirectory(dirPath)
-	local nodes = { NuiTree.Node({ text = " New query", addQuery = true }) }
+	local nodes =
+		{ NuiTree.Node({ text = " New query", addQuery = true, nodeType = NodeUtils.NodeTypes.NEW_SAVED_QUERY }) }
 	for _, fileName in ipairs(queryFiles) do
 		table.insert(nodes, NodeUtils.getSavedQueryNode(fileName))
 	end
@@ -30,15 +31,38 @@ DbExplorer.handleEditConnection = function()
 	end
 end
 
+--- Returns the node under cursor or nil if no node is selected
+---@return NuiTreeNode | nil
+DbExplorer.getNodeOnCursor = function()
+	return DbExplorer.tree:get_node()
+end
+
+--- get the root node that is expanded. this node is the connection node and it has the connectionConfig on it
+---@return NuiTreeNode | nil
+DbExplorer.getExpandedRootNode = function()
+	local rootNodes = DbExplorer.tree:get_nodes()
+	local rootNode = nil
+	for _, node in ipairs(rootNodes) do
+		if node:is_expanded() then
+			if node.connectionConfig then
+				rootNode = node
+				break
+			end
+		end
+	end
+	return rootNode
+end
+
 --- When user enter to a new connection node. this function creates the connection to the server and prepare all the required queries
 ---@param node NuiTreeNode
----@return connectionConfig
 local function handleEnterConnectionNode(node)
 	-- first colapse all nodes
 	NodeUtils.collapseRootNodes(DbExplorer.tree)
 	if not node.loaded then
-		local storedQueriesNode = NuiTree.Node(
-			{ text = " " .. "Saved queries", savedQueries = true },
+		local storedQueriesNode = NodeUtils.NewNodeFactory(
+			" " .. "Saved queries",
+			NodeUtils.NodeTypes.ROOT_SAVED_QUERY,
+			nil,
 			getSavedQueries(node.connectionConfig)
 		)
 		-- store the node id of the special stored queries node
@@ -46,18 +70,27 @@ local function handleEnterConnectionNode(node)
 		DbExplorer.tree:add_node(storedQueriesNode, node:get_id())
 		local conId = Dbconnection.addConnection(node.connectionConfig)
 		node.connectionConfig.conId = conId
-		local tables = Dbconnection.getTables(conId)
-		for _, tableName in ipairs(tables) do
-			DbExplorer.tree:add_node(
-				NuiTree.Node({
-					text = " " .. tableName,
-					get_columns_query = "get_columns?connection_id=$conId&table_name=$tableName",
-					get_table_query = "query_table?connection_id=$conId&table_name=$tableName",
-					args = { conId = conId, tableName = tableName },
-					loaded = false,
-				}),
-				node:get_id()
-			)
+		local allDbCatalogs = DbConnection.getAllDbCatalogs(conId)
+		for _, dbCataolg in ipairs(allDbCatalogs) do
+			local dbname = dbCataolg.name
+			local dbNode = NodeUtils.NewNodeFactory(" " .. dbname, NodeUtils.NodeTypes.DATABASE)
+			DbExplorer.tree:add_node(dbNode, node:get_id())
+			for _, schema in ipairs(dbCataolg.schemas) do
+				local schemaName = schema.name
+				local schemaNode = NodeUtils.NewNodeFactory("󰢶 " .. schemaName, NodeUtils.NodeTypes.SCHEMA)
+				DbExplorer.tree:add_node(schemaNode, dbNode:get_id())
+				for _, tblName in ipairs(schema.tables) do
+					DbExplorer.tree:add_node(
+						NodeUtils.NewNodeFactory(" " .. tblName, NodeUtils.NodeTypes.TABLE, {
+							get_columns_query = "get_columns?connection_id=$conId&table_name=$tableName",
+							get_table_query = "query_table?connection_id=$conId&table_name=$tableName",
+							args = { conId = conId, tableName = tblName },
+							loaded = false,
+						}),
+						schemaNode:get_id()
+					)
+				end
+			end
 		end
 		node.loaded = true
 	end
@@ -65,29 +98,17 @@ local function handleEnterConnectionNode(node)
 	vim.api.nvim_win_set_cursor(0, { 1, 0 })
 	NodeUtils.toggleNodeExpansion(node)
 	DbExplorer.tree:render()
-	return node.connectionConfig
 end
 --- Get table names from server and create tree node
 ---@param node NuiTreeNode
 local function handleGetTableColumns(node)
-	local nodes = Api.getRequest(node.get_columns_query, node.args)
-	local nodesList = vim.json.decode(nodes)
+	local nodesList = Api.getRequest(node.get_columns_query, node.args)
 	for _, child in ipairs(nodesList) do
-		DbExplorer.tree:add_node(NuiTree.Node({ text = child }), node:get_id())
+		DbExplorer.tree:add_node(NodeUtils.NewNodeFactory(" " .. child, NodeUtils.NodeTypes.COLUMN), node:get_id())
 	end
 	node.loaded = true
 	NodeUtils.toggleNodeExpansion(node)
 	DbExplorer.tree:render()
-end
---- Executes the get query to fetch sample data from selected table and returns the json string result
----@param node NuiTreeNode
----@return string
-local function handleQuerySampleDataTable(node)
-	local result = Api.getRequest(node.get_table_query, node.args)
-	return result
-	-- local tbl = queryResult.getTable(vim.json.decode(result), panels.bottom_panel)
-	-- clearQueryWindow()
-	-- tbl:render()
 end
 --- Handles actions and cases when user hit enter in a node
 --- There are different cases need to be handled. When user enter:
@@ -103,26 +124,30 @@ DbExplorer.handleEnterNode = function()
 	if node == nil then
 		return
 	end
-	local resultedReturn = {}
-	if node.connectionConfig then
-		resultedReturn.selectedDbConfig = handleEnterConnectionNode(node)
+	local resultedReturn = { node = node }
+	if node.nodeType == NodeUtils.NodeTypes.CONNECTION then
+		handleEnterConnectionNode(node)
 	end
-	if node.get_columns_query ~= nil and not node.loaded then
-		handleGetTableColumns(node)
+	if node.nodeType == NodeUtils.NodeTypes.TABLE then
+		if node.get_columns_query ~= nil and not node.loaded then
+			handleGetTableColumns(node)
+		end
 	end
-	if node.get_table_query ~= nil then
-		resultedReturn.sampleData = handleQuerySampleDataTable(node)
-	end
-	if node.savedQueries then
+	-- the following node types only toggle the expansion
+	if
+		node.nodeType == NodeUtils.NodeTypes.ROOT_SAVED_QUERY
+		or node.nodeType == NodeUtils.NodeTypes.SCHEMA
+		or node.nodeType == NodeUtils.NodeTypes.DATABASE
+	then
 		NodeUtils.toggleNodeExpansion(node)
 		DbExplorer.tree:render()
 	end
-	if node.savedQuery then
-		resultedReturn.saveQueryNode = node
-	end
-	if node.addQuery then
-		resultedReturn.addQueryNode = node
-	end
+	-- if node.savedQuery then
+	-- 	resultedReturn.saveQueryNode = true
+	-- end
+	-- if node.addQuery then
+	-- 	resultedReturn.addQueryNode = true
+	-- end
 	return resultedReturn
 end
 
@@ -130,11 +155,11 @@ end
 ---@param connectionConfig table
 ---@return string
 local addNewRootNode = function(connectionConfig)
-	local node = NuiTree.Node({
-		text = "󱘖 " .. connectionConfig.name,
-		connectionConfig = connectionConfig,
-		loaded = false,
-	})
+	local node = NodeUtils.NewNodeFactory(
+		"󱘖 " .. connectionConfig.name,
+		NodeUtils.NodeTypes.CONNECTION,
+		{ connectionConfig = connectionConfig, loaded = false }
+	)
 	DbExplorer.tree:add_node(node, nil)
 	DbExplorer.tree:render()
 	return node:get_id()

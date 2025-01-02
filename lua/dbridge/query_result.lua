@@ -4,12 +4,11 @@ local Text = require("nui.text")
 
 QueryResult = {}
 
-QueryResult.renderResult = function(dataStr)
-	local data = vim.json.decode(dataStr)
+QueryResult.renderResult = function(data)
 	local columns = {}
 	local panel = QueryResult.panel
-	-- just show the top 5
-	local topn = vim.fn.min({ 5, #data })
+	-- just show the top 10
+	local topn = vim.fn.min({ 10, #data })
 	data = vim.list_slice(data, 1, topn)
 	-- data is an array of tables with key=value for table
 	for k, _ in pairs(data[1]) do

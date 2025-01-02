@@ -2,6 +2,32 @@ local NuiTree = require("nui.tree")
 local NuiLine = require("nui.line")
 local Config = require("dbridge.config")
 NodeUtils = {}
+
+NodeUtils.NodeTypes = {
+	ROOT_SAVED_QUERY = "ROOT_SAVED_QUERY",
+	SAVED_QUERY = "SAVED_QUERY",
+	NEW_SAVED_QUERY = "NEW_SAVED_QUERY",
+	CONNECTION = "CONNECTION",
+	DATABASE = "DATABASE",
+	SCHEMA = "SCHEMA",
+	TABLE = "TABLE",
+	COLUMN = "COLUMN",
+}
+
+--- A factory function to create a new node in tree
+---@param text string name of the node
+---@param nodeType string
+---@param extraData? table extra fields for custom node data
+---@param children? NuiTreeNode[] children node
+---@return NuiTreeNode
+NodeUtils.NewNodeFactory = function(text, nodeType, extraData, children)
+	extraData = extraData or {}
+	children = children or {}
+	local data = { text = text, nodeType = nodeType }
+	data = vim.tbl_extend("keep", data, extraData)
+	return NuiTree.Node(data, children)
+end
+
 --- compute connection path for the given connection name
 ---@param name string
 ---@return string
@@ -19,7 +45,10 @@ end
 ---@param fileName string
 ---@return NuiTreeNode
 NodeUtils.getSavedQueryNode = function(fileName)
-	return NuiTree.Node({ text = " " .. fileName, savedQuery = fileName })
+	local text = " " .. fileName
+	local extraData = { savedQuery = fileName }
+	local nodeType = NodeUtils.NodeTypes.SAVED_QUERY
+	return NodeUtils.NewNodeFactory(text, nodeType, extraData)
 end
 
 --- Create a tree of connections with default mappings

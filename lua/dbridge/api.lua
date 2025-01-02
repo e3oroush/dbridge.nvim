@@ -1,6 +1,7 @@
 local config = require("dbridge.config")
 Api = {}
 
+Api.path = { getAll = "get_dbs_schemas_tables", getTables = "get_tables" }
 local url = config.serverUrl
 local function runCmd(cmd)
 	local handle = io.popen(cmd)
@@ -18,7 +19,7 @@ Api.getRequest = function(path, args)
 	end
 	local getUrl = url .. path
 	local cmd = "curl --silent --no-buffer -X GET '" .. getUrl .. "'"
-	return runCmd(cmd)
+	return vim.fn.json_decode(runCmd(cmd))
 end
 Api.postRequest = function(path, data)
 	local cmd = "curl --silent --no-buffer -X POST " .. url .. path .. " -H 'Content-Type: application/json'"
@@ -27,7 +28,7 @@ Api.postRequest = function(path, data)
 		cmd = cmd .. " -d '$body'"
 		cmd = string.gsub(cmd, "%$body", body)
 	end
-	return runCmd(cmd)
+	return vim.fn.json_decode(runCmd(cmd))
 end
 
 return Api
