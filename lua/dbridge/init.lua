@@ -50,26 +50,25 @@ local function getActiveConnectionConId()
 	end
 	return selected
 end
-local function getBoxSplits()
-	return Layout.Box({
-		Layout.Box({
-			Layout.Box(Dbexplorer.panel, { size = "90%" }),
-			Layout.Box(HelpPanel.panel, { size = "10%" }),
-		}, { dir = "col", size = "20%" }),
-		Layout.Box({
-			Layout.Box(QueryEditor.panel, { size = "60%" }),
-			Layout.Box(QueryResult.panel, { size = "40%" }),
-		}, { dir = "col", size = "80%" }),
-	}, { dir = "row", size = "100%" })
-end
 --- Initialize the layout
 local function initLayout()
-	local box = getBoxSplits()
-	local layout = Layout({
-		position = "top",
-		size = "100%",
-		relative = "editor",
-	}, box)
+	local layout = Layout(
+		{
+			position = "top",
+			size = "100%",
+			relative = "editor",
+		},
+		Layout.Box({
+			Layout.Box({
+				Layout.Box(Dbexplorer.panel, { size = "90%" }),
+				Layout.Box(HelpPanel.panel, { size = "10%" }),
+			}, { dir = "col", size = "20%" }),
+			Layout.Box({
+				Layout.Box(QueryEditor.panel, { size = "60%" }),
+				Layout.Box(QueryResult.panel, { size = "40%" }),
+			}, { dir = "col", size = "80%" }),
+		}, { dir = "row", size = "100%" })
+	)
 	return layout
 end
 local function initKeyMappings()

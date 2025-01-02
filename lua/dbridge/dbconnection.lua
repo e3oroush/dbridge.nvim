@@ -78,14 +78,28 @@ local function getNewConPopup(onEnter, onLeave)
 	return popup
 end
 
-DbConnection.editConnection = function(connectionConfig)
+--- Function that takes care of edditing a connection config
+---@param connectionConfig connectionConfig the old connection config that we want to edit
+---@param updateNodeCallback function that should be called once the connection config was updated
+DbConnection.editConnection = function(connectionConfig, updateNodeCallback)
 	local conPath = NodeUtils.getConnectionPath(connectionConfig.name)
 	local popup = getPopUp()
 	local content = vim.fn.readfile(conPath)
+	local oldConfigObject = vim.fn.json_decode(table.concat(content, "\n"))
 	vim.api.nvim_buf_set_lines(popup.bufnr, 0, -1, false, content)
 	popup:on("BufLeave", function()
 		local editedConfig = vim.api.nvim_buf_get_lines(popup.bufnr, 0, -1, false)
+		local newConfigObject = vim.fn.json_decode(table.concat(editedConfig, "\n"))
 		vim.fn.writefile(editedConfig, conPath)
+		-- We have to rename the queryPath and connectionPath if the name was modified
+		if oldConfigObject.name ~= newConfigObject.name then
+			local newConPath = NodeUtils.getConnectionPath(newConfigObject.name)
+			os.rename(conPath, newConPath)
+			local oldQueryPath = NodeUtils.getQueryPath(oldConfigObject.name)
+			local newQueryPath = NodeUtils.getQueryPath(newConfigObject.name)
+			os.rename(oldQueryPath, newQueryPath)
+		end
+		updateNodeCallback(newConfigObject)
 	end)
 	popup:map("n", "q", function()
 		popup:unmount()

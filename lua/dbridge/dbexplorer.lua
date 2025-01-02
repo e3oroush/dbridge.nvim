@@ -21,16 +21,6 @@ local function getSavedQueries(connectionConfig)
 	return nodes
 end
 
-DbExplorer.handleEditConnection = function()
-	local node = DbExplorer.tree:get_node()
-	if node == nil then
-		return
-	end
-	if node.connectionConfig then
-		Dbconnection.editConnection(node.connectionConfig)
-	end
-end
-
 --- Returns the node under cursor or nil if no node is selected
 ---@return NuiTreeNode | nil
 DbExplorer.getNodeOnCursor = function()
@@ -173,11 +163,27 @@ local function initStoredConnections()
 	end
 	DbExplorer.tree:render()
 end
-local function init()
-	DbExplorer.panel = Split({})
+local function initTree()
 	DbExplorer.tree = NodeUtils.createTreeNode(DbExplorer.panel)
 	initStoredConnections()
 end
+local function init()
+	DbExplorer.panel = Split({})
+	initTree()
+end
 DbExplorer.addNewRootNode = addNewRootNode
 DbExplorer.init = init
+DbExplorer.handleEditConnection = function()
+	local node = DbExplorer.tree:get_node()
+	if node == nil then
+		return
+	end
+	if node.connectionConfig then
+		Dbconnection.editConnection(node.connectionConfig, function(newConConfig)
+			node.connectionConfig = newConConfig
+			node.text = "󱘖 " .. newConConfig.name
+			DbExplorer.tree:render()
+		end)
+	end
+end
 return DbExplorer
