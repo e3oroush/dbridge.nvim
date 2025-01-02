@@ -1,7 +1,7 @@
 local config = require("dbridge.config")
 Api = {}
 
-Api.path = { getAll = "get_dbs_schemas_tables", getTables = "get_tables" }
+Api.path = { getAll = "get_dbs_schemas_tables", getTables = "get_tables", getColumns = "get_columns" }
 local url = config.serverUrl
 local function runCmd(cmd)
 	local handle = io.popen(cmd)

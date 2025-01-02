@@ -4,6 +4,7 @@ local Dbexplorer = require("dbridge.dbexplorer")
 local QueryEditor = require("dbridge.query_editor")
 local QueryResult = require("dbridge.query_result")
 local Dbconnection = require("dbridge.dbconnection")
+local HelpPanel = require("dbridge.help")
 local M = {}
 M.setup = function(opts)
 	opts = opts or {}
@@ -49,6 +50,28 @@ local function getActiveConnectionConId()
 	end
 	return selected
 end
+local function getBoxSplits()
+	return Layout.Box({
+		Layout.Box({
+			Layout.Box(Dbexplorer.panel, { size = "90%" }),
+			Layout.Box(HelpPanel.panel, { size = "10%" }),
+		}, { dir = "col", size = "20%" }),
+		Layout.Box({
+			Layout.Box(QueryEditor.panel, { size = "60%" }),
+			Layout.Box(QueryResult.panel, { size = "40%" }),
+		}, { dir = "col", size = "80%" }),
+	}, { dir = "row", size = "100%" })
+end
+--- Initialize the layout
+local function initLayout()
+	local box = getBoxSplits()
+	local layout = Layout({
+		position = "top",
+		size = "100%",
+		relative = "editor",
+	}, box)
+	return layout
+end
 local function initKeyMappings()
 	local mapOptions = { noremap = true, nowait = true }
 	Dbexplorer.panel:map("n", "a", addNewConnection, mapOptions)
@@ -81,28 +104,15 @@ local function initKeyMappings()
 	end, mapOptions)
 	QueryResult.panel:map("n", "n", QueryResult.handleNext, mapOptions)
 	QueryResult.panel:map("n", "p", QueryResult.handlePrev, mapOptions)
+	HelpPanel.panel:map("n", "?", HelpPanel.handleHelp, mapOptions)
 end
 
 M.init = function()
 	Dbexplorer.init()
 	QueryEditor.init()
 	QueryResult.init()
-	local layout = Layout(
-		{
-			position = "top",
-			size = "100%",
-			relative = "editor",
-		},
-		Layout.Box({
-			Layout.Box({
-				Layout.Box(Dbexplorer.panel, { size = "20%" }),
-				Layout.Box(QueryEditor.panel, { size = "80%" }),
-			}, { dir = "row", size = "100%" }),
-			Layout.Box(QueryResult.panel, { size = "20%" }),
-		}, { dir = "col", size = "100%" })
-	)
-	M.selectedDbConfig = nil
-	M.layout = layout
+	HelpPanel.init()
+	M.layout = initLayout()
 	M.hide = false
 	initKeyMappings()
 	-- handle when user enter :q
@@ -116,7 +126,7 @@ M.init = function()
 						return
 					end
 				end
-				layout:unmount()
+				M.layout:unmount()
 				vim.g.dbridge_loaded = 0
 				M.hide = true
 				M.init()
