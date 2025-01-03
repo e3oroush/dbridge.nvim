@@ -75,6 +75,7 @@ local function initKeyMappings()
 	local mapOptions = { noremap = true, nowait = true }
 	Dbexplorer.panel:map("n", "a", addNewConnection, mapOptions)
 	Dbexplorer.panel:map("n", "e", Dbexplorer.handleEditConnection, mapOptions)
+	Dbexplorer.panel:map("n", "DD", Dbexplorer.handleDelete, mapOptions)
 	Dbexplorer.panel:map("n", "<CR>", function()
 		local resultedReturn = Dbexplorer.handleEnterNode()
 		if resultedReturn == nil then
@@ -130,8 +131,6 @@ M.init = function()
 					end
 				end
 				M.layout:unmount()
-				-- vim.api.nvim_set_current_tabpage(M.tabNumber)
-				-- vim.cmd("tabclose")
 				vim.g.dbridge_loaded = 0
 				M.hide = true
 				M.init()
@@ -143,12 +142,14 @@ end
 vim.api.nvim_create_user_command("Dbxplore", function()
 	if vim.g.dbridge_loaded ~= 1 then
 		vim.cmd("tabnew")
+		local tempBufNr = vim.fn.bufnr()
 		M.tabNumber = vim.api.nvim_tabpage_get_number(0)
 		M.init()
 		M.layout:mount()
 		vim.api.nvim_set_current_win(DbExplorer.panel.winid)
 		vim.g.dbridge_loaded = 1
 		M.hide = false
+		vim.api.nvim_buf_delete(tempBufNr, { force = true })
 		return
 	end
 	if M.hide then

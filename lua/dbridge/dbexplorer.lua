@@ -194,4 +194,21 @@ DbExplorer.handleEditConnection = function()
 		end)
 	end
 end
+DbExplorer.handleDelete = function()
+	local node = DbExplorer.tree:get_node()
+	if node == nil then
+		return
+	end
+	if node.nodeType == NodeUtils.NodeTypes.SAVED_QUERY then
+		local rootNode = NodeUtils.getRootNode(node, DbExplorer.tree)
+		local queryPath = NodeUtils.getQueryPath(rootNode.connectionConfig.name)
+		local filePath = (queryPath .. "/" .. node.savedQuery)
+		os.remove(filePath)
+		DbExplorer.tree:remove_node(node:get_id())
+		DbExplorer.tree:render()
+	elseif node.nodeType == NodeUtils.NodeTypes.CONNECTION then
+		DbExplorer.tree:remove_node(node:get_id())
+		DbExplorer.tree:render()
+	end
+end
 return DbExplorer
