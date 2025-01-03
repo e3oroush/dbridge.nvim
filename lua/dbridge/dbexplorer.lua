@@ -168,7 +168,7 @@ local function initTree()
 	initStoredConnections()
 end
 local function init()
-	DbExplorer.panel = Split({})
+	DbExplorer.panel = Split({ enter = true })
 	initTree()
 end
 DbExplorer.addNewRootNode = addNewRootNode

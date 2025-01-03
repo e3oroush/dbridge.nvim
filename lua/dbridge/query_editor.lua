@@ -75,6 +75,7 @@ QueryEditor.init = function()
 	-- make the buffer sql like file for lsp and formatting
 	local panel = Split({
 		buf_options = { filetype = "sql", buftype = "", bufhidden = "wipe", swapfile = false },
+		enter = false,
 	})
 	panel:on("BufEnter", function()
 		vim.opt_local.commentstring = "-- %s"

@@ -136,14 +136,17 @@ end
 
 vim.api.nvim_create_user_command("Dbxplore", function()
 	if vim.g.dbridge_loaded ~= 1 then
+		vim.cmd("tabnew")
 		M.init()
 		M.layout:mount()
+		vim.api.nvim_set_current_win(DbExplorer.panel.winid)
 		vim.g.dbridge_loaded = 1
 		M.hide = false
 		return
 	end
 	if M.hide then
 		M.layout:show()
+		vim.api.nvim_set_current_win(DbExplorer.panel.winid)
 	else
 		M.layout:hide()
 	end

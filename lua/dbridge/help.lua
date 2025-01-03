@@ -7,7 +7,7 @@ local function initPanel()
 	vim.api.nvim_buf_set_lines(HelpPanel.panel.bufnr, 0, -1, false, text)
 end
 HelpPanel.init = function()
-	HelpPanel.panel = Split({})
+	HelpPanel.panel = Split({ enter = false })
 	HelpPanel.show = false
 	initPanel()
 end

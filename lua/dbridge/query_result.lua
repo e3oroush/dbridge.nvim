@@ -77,7 +77,7 @@ QueryResult.handlePrev = function()
 	end
 end
 QueryResult.init = function()
-	QueryResult.panel = Split({})
+	QueryResult.panel = Split({ enter = false })
 	QueryResult.pageItems = 5
 	initPageStats()
 end
