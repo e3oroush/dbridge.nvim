@@ -130,6 +130,8 @@ M.init = function()
 					end
 				end
 				M.layout:unmount()
+				-- vim.api.nvim_set_current_tabpage(M.tabNumber)
+				-- vim.cmd("tabclose")
 				vim.g.dbridge_loaded = 0
 				M.hide = true
 				M.init()
@@ -141,6 +143,7 @@ end
 vim.api.nvim_create_user_command("Dbxplore", function()
 	if vim.g.dbridge_loaded ~= 1 then
 		vim.cmd("tabnew")
+		M.tabNumber = vim.api.nvim_tabpage_get_number(0)
 		M.init()
 		M.layout:mount()
 		vim.api.nvim_set_current_win(DbExplorer.panel.winid)

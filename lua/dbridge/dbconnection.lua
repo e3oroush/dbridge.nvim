@@ -10,7 +10,6 @@ DbConnection = {}
 ---@field name string
 ---@field conId string
 ---@field uri string
----@field storedQueriesNodeId string
 
 ---@class DatabaseCatalog
 ---@field name string

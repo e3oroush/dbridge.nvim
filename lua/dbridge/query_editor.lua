@@ -28,8 +28,8 @@ QueryEditor.addSavedQuery = function(node, tree)
 	local queryPath = NodeUtils.getQueryPath(rootNode.connectionConfig.name) .. "/" .. fileName
 	vim.fn.writefile({}, queryPath)
 	local savedQueryNode = NodeUtils.getSavedQueryNode(fileName)
-	QueryEditor.tree:add_node(savedQueryNode, parentNodeId)
-	QueryEditor.tree:render()
+	tree:add_node(savedQueryNode, parentNodeId)
+	tree:render()
 	QueryEditor.openSavedQery(savedQueryNode, tree)
 end
 ---@param node NuiTreeNode

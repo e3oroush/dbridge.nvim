@@ -49,15 +49,23 @@ local function handleEnterConnectionNode(node)
 	-- first colapse all nodes
 	NodeUtils.collapseRootNodes(DbExplorer.tree)
 	if not node.loaded then
-		local storedQueriesNode = NodeUtils.NewNodeFactory(
-			" " .. "Saved queries",
-			NodeUtils.NodeTypes.ROOT_SAVED_QUERY,
-			nil,
-			getSavedQueries(node.connectionConfig)
-		)
-		-- store the node id of the special stored queries node
-		node.connectionConfig.storedQueriesNodeId = storedQueriesNode:get_id()
-		DbExplorer.tree:add_node(storedQueriesNode, node:get_id())
+		local childIds = node:get_child_ids()
+		local savedQueryLoaded = false
+		for _, childId in ipairs(childIds) do
+			local child = DbExplorer.tree:get_node(childId)
+			if child.nodeType == NodeUtils.NodeTypes.ROOT_SAVED_QUERY then
+				savedQueryLoaded = true
+			end
+		end
+		if not savedQueryLoaded then
+			local storedQueriesNode = NodeUtils.NewNodeFactory(
+				" " .. "Saved queries",
+				NodeUtils.NodeTypes.ROOT_SAVED_QUERY,
+				nil,
+				getSavedQueries(node.connectionConfig)
+			)
+			DbExplorer.tree:add_node(storedQueriesNode, node:get_id())
+		end
 		local conId = Dbconnection.addConnection(node.connectionConfig)
 		node.connectionConfig.conId = conId
 		local allDbCatalogs = DbConnection.getAllDbCatalogs(conId)
