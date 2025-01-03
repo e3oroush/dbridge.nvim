@@ -48,14 +48,28 @@ end
 
 --- Execte the query written in the current buffer
 ---@param conId string|nil connection id
+---@param conName string? custom connection name for new session
 ---@return table result is the json string resulted from executed query
-QueryEditor.executeQuery = function(conId)
+QueryEditor.executeQuery = function(conId, conName)
 	local lines = vim.api.nvim_buf_get_lines(QueryEditor.panel.bufnr, 0, -1, false)
 	local query = table.concat(lines or {}, "\n")
-	-- TODO: try to connect if selectedDbConfig is nil
 	local data = { query = query, connection_id = conId }
+	if conName then
+		data.connection_name = conName
+	end
 	local result = Api.postRequest("run_query", data)
 	return result
+end
+
+---Returns the buffer name of the query editor. If it's no name, returns default
+---@result string
+QueryEditor.getBufferName = function()
+	local bufName = vim.api.nvim_buf_get_name(QueryEditor.panel.bufnr)
+	local name = "default"
+	if #bufName > 1 then
+		name = bufName:match("([^/]+)%.%w+$")
+	end
+	return name
 end
 QueryEditor.init = function()
 	-- make the buffer sql like file for lsp and formatting

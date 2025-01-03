@@ -25,6 +25,7 @@ Api.postRequest = function(path, data)
 	local cmd = "curl --silent --no-buffer -X POST " .. url .. path .. " -H 'Content-Type: application/json'"
 	if data ~= nil then
 		local body = vim.fn.json_encode(data)
+		body = string.gsub(body, "'", "'\"'")
 		cmd = cmd .. " -d '$body'"
 		cmd = string.gsub(cmd, "%$body", body)
 	end

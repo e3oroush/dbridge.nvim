@@ -42,7 +42,7 @@ end
 
 --- Returns the active connection uri
 ---@return string | nil
-local function getActiveConnectionConId()
+local function getActiveConnectionId()
 	local selected = nil
 	local connectionConfig = getActiveConnection()
 	if connectionConfig ~= nil then
@@ -98,7 +98,7 @@ local function initKeyMappings()
 		end
 	end, mapOptions)
 	QueryEditor.panel:map("n", "<leader>r", function()
-		local data = QueryEditor.executeQuery(getActiveConnectionConId())
+		local data = QueryEditor.executeQuery(getActiveConnectionId(), QueryEditor.getBufferName())
 		QueryResult.renderResult(data)
 	end, mapOptions)
 	QueryResult.panel:map("n", "n", QueryResult.handleNext, mapOptions)
