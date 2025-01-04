@@ -75,6 +75,7 @@ local function initKeyMappings()
 	local mapOptions = { noremap = true, nowait = true }
 	Dbexplorer.panel:map("n", "a", addNewConnection, mapOptions)
 	Dbexplorer.panel:map("n", "e", Dbexplorer.handleEditConnection, mapOptions)
+	Dbexplorer.panel:map("n", "R", Dbexplorer.handleRefresh, mapOptions)
 	Dbexplorer.panel:map("n", "DD", Dbexplorer.handleDelete, mapOptions)
 	Dbexplorer.panel:map("n", "<CR>", function()
 		local resultedReturn = Dbexplorer.handleEnterNode()

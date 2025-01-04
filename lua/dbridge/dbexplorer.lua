@@ -50,22 +50,32 @@ local function handleEnterConnectionNode(node)
 	NodeUtils.collapseRootNodes(DbExplorer.tree)
 	if not node.loaded then
 		local childIds = node:get_child_ids()
-		local savedQueryLoaded = false
+		local savedQueryNodeId = nil
+		local connectionNodeId = nil
 		for _, childId in ipairs(childIds) do
 			local child = DbExplorer.tree:get_node(childId)
-			if child.nodeType == NodeUtils.NodeTypes.ROOT_SAVED_QUERY then
-				savedQueryLoaded = true
+			if child then
+				if child.nodeType == NodeUtils.NodeTypes.ROOT_SAVED_QUERY then
+					savedQueryNodeId = childId
+				elseif child.nodeType == NodeUtils.NodeTypes.DATABASE then
+					connectionNodeId = childId
+				end
 			end
 		end
-		if not savedQueryLoaded then
-			local storedQueriesNode = NodeUtils.NewNodeFactory(
-				" " .. "Saved queries",
-				NodeUtils.NodeTypes.ROOT_SAVED_QUERY,
-				nil,
-				getSavedQueries(node.connectionConfig)
-			)
-			DbExplorer.tree:add_node(storedQueriesNode, node:get_id())
+		-- Delete the old nodes to update with the new one
+		if savedQueryNodeId then
+			DbExplorer.tree:remove_node(savedQueryNodeId)
 		end
+		if connectionNodeId then
+			DbExplorer.tree:remove_node(connectionNodeId)
+		end
+		local storedQueriesNode = NodeUtils.NewNodeFactory(
+			" " .. "Saved queries",
+			NodeUtils.NodeTypes.ROOT_SAVED_QUERY,
+			nil,
+			getSavedQueries(node.connectionConfig)
+		)
+		DbExplorer.tree:add_node(storedQueriesNode, node:get_id())
 		local conId = Dbconnection.addConnection(node.connectionConfig)
 		node.connectionConfig.conId = conId
 		local allDbCatalogs = DbConnection.getAllDbCatalogs(conId)
@@ -140,12 +150,6 @@ DbExplorer.handleEnterNode = function()
 		NodeUtils.toggleNodeExpansion(node)
 		DbExplorer.tree:render()
 	end
-	-- if node.savedQuery then
-	-- 	resultedReturn.saveQueryNode = true
-	-- end
-	-- if node.addQuery then
-	-- 	resultedReturn.addQueryNode = true
-	-- end
 	return resultedReturn
 end
 
@@ -199,16 +203,29 @@ DbExplorer.handleDelete = function()
 	if node == nil then
 		return
 	end
+	local rootNode = NodeUtils.getRootNode(node, DbExplorer.tree)
 	if node.nodeType == NodeUtils.NodeTypes.SAVED_QUERY then
-		local rootNode = NodeUtils.getRootNode(node, DbExplorer.tree)
 		local queryPath = NodeUtils.getQueryPath(rootNode.connectionConfig.name)
 		local filePath = (queryPath .. "/" .. node.savedQuery)
 		os.remove(filePath)
 		DbExplorer.tree:remove_node(node:get_id())
 		DbExplorer.tree:render()
 	elseif node.nodeType == NodeUtils.NodeTypes.CONNECTION then
+		local connectionPath = NodeUtils.getConnectionPath(rootNode.connectionConfig.name)
+		local filePath = (connectionPath .. "/" .. rootNode.connectionConfig.name)
+		os.remove(filePath)
+		-- We just remove the connection not the queries
 		DbExplorer.tree:remove_node(node:get_id())
 		DbExplorer.tree:render()
 	end
+end
+DbExplorer.handleRefresh = function()
+	local node = DbExplorer.tree:get_node()
+	if node == nil then
+		return
+	end
+	local rootNode = NodeUtils.getRootNode(node, DbExplorer.tree)
+	rootNode.loaded = false
+	handleEnterConnectionNode(rootNode)
 end
 return DbExplorer

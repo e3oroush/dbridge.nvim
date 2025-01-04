@@ -29,6 +29,8 @@ HelpPanel.handleHelp = function()
 			"'a' add a new connection",
 			"'e' edit a connection",
 			"'Enter' open a connection",
+			"'R' refresh a connection",
+			"'DD' delete a connection/query",
 			"'l' to expand an opened node",
 			"'h' to collapse an expaned node",
 			"'<leader>r' on editor execute query",
