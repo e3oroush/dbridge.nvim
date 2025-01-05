@@ -90,9 +90,9 @@ local function handleEnterConnectionNode(node)
 				for _, tblName in ipairs(schema.tables) do
 					DbExplorer.tree:add_node(
 						NodeUtils.NewNodeFactory(" " .. tblName, NodeUtils.NodeTypes.TABLE, {
-							get_columns_query = "get_columns?connection_id=$conId&table_name=$tableName",
-							get_table_query = "query_table?connection_id=$conId&table_name=$tableName",
-							args = { conId = conId, tableName = tblName },
+							get_columns_query = Api.path.getColumns .. Api.pathArgs,
+							get_table_query = Api.path.queryTable .. Api.pathArgs,
+							args = { conId = conId, tableName = tblName, dbname = dbname, schemaName = schemaName },
 							loaded = false,
 						}),
 						schemaNode:get_id()
@@ -211,8 +211,7 @@ DbExplorer.handleDelete = function()
 		DbExplorer.tree:remove_node(node:get_id())
 		DbExplorer.tree:render()
 	elseif node.nodeType == NodeUtils.NodeTypes.CONNECTION then
-		local connectionPath = NodeUtils.getConnectionPath(rootNode.connectionConfig.name)
-		local filePath = (connectionPath .. "/" .. rootNode.connectionConfig.name)
+		local filePath = NodeUtils.getConnectionPath(rootNode.connectionConfig.name)
 		os.remove(filePath)
 		-- We just remove the connection not the queries
 		DbExplorer.tree:remove_node(node:get_id())

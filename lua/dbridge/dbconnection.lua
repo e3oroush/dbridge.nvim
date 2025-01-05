@@ -113,9 +113,6 @@ DbConnection.addConnection = function(config)
 	local conConfig = Api.postRequest("connections", config)
 	return conConfig.connection_id
 end
-DbConnection.getTables = function(conId)
-	return Api.getRequest(Api.path.getTables .. "?connection_id=$conId", { conId = conId })
-end
 --- Get all databases with their schema and tables using the current connection user credentials
 ---@param conId string
 ---@return DatabaseCatalog[]
