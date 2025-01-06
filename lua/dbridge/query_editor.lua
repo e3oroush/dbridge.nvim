@@ -38,7 +38,12 @@ QueryEditor.clearQueryWindow = function(node, tree)
 	local bufnr = QueryEditor.panel.bufnr
 	local winid = QueryEditor.panel.winid
 	local rootNode = NodeUtils.getRootNode(node, tree)
-	local fileName = rootNode.connectionConfig.name .. "-" .. os.date("%Y-%m-%d-%H%M%S") .. ".sql"
+	local fileName = rootNode.connectionConfig.name
+		.. "-"
+		.. node.args.tableName
+		.. "-"
+		.. os.date("%Y-%m-%d-%H%M%S")
+		.. ".sql"
 	local queryPath = NodeUtils.getQueryPath(rootNode.connectionConfig.name) .. "/" .. fileName
 	vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 	vim.api.nvim_buf_set_name(bufnr, queryPath)

@@ -24,6 +24,10 @@ end
 local function renderData(data)
 	local columns = {}
 	local panel = QueryResult.panel
+	if not data[1] then
+		vim.notify("no data retrieved")
+		return
+	end
 	for k, _ in pairs(data[1]) do
 		local col = {
 			align = "center",
