@@ -110,7 +110,7 @@ end
 ---@param config table
 ---@return string
 DbConnection.addConnection = function(config)
-	local conConfig = Api.postRequest("connections", config)
+	local conConfig = Api.postRequest(Api.path.connection, config)
 	return conConfig.connection_id
 end
 --- Get all databases with their schema and tables using the current connection user credentials
@@ -120,7 +120,7 @@ DbConnection.getAllDbCatalogs = function(conId)
 	return Api.getRequest(Api.path.getAll .. "?connection_id=$conId", { conId = conId })
 end
 local function initText()
-	local config = { name = "test_db", adapter = "sqlite", uri = "" }
+	local config = { name = "test_db", adapter = "sqlite", uri = "", connection_config = {} }
 	return vim.fn.json_encode(config)
 end
 

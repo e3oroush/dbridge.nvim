@@ -1,7 +1,12 @@
 local config = require("dbridge.config")
 Api = {}
 
-Api.path = { getAll = "get_dbs_schemas_tables", getColumns = "get_columns", queryTable = "query_table" }
+Api.path = {
+	getAll = "get_dbs_schemas_tables",
+	getColumns = "get_columns",
+	queryTable = "query_table",
+	connection = "connections",
+}
 Api.pathArgs = "?connection_id=$conId&table_name=$tableName&dbname=$dbname&schema_name=$schemaName"
 local url = config.serverUrl
 local function runCmd(cmd)
@@ -27,8 +32,7 @@ Api.postRequest = function(path, data)
 	if data ~= nil then
 		local body = vim.fn.json_encode(data)
 		body = string.gsub(body, "'", "'\"'")
-		cmd = cmd .. " -d '$body'"
-		cmd = string.gsub(cmd, "%$body", body)
+		cmd = cmd .. " -d '" .. body .. "'"
 	end
 	return vim.fn.json_decode(runCmd(cmd))
 end
