@@ -48,6 +48,7 @@ local function getPopUp()
 		buf_options = {
 			modifiable = true,
 			readonly = false,
+			filetype = "json",
 		},
 		win_options = {
 			winblend = 10,
