@@ -161,4 +161,5 @@ vim.api.nvim_create_user_command("Dbxplore", function()
 	end
 	M.hide = not M.hide
 end, {})
+M.getActiveConnectionId = getActiveConnectionId
 return M
