@@ -115,9 +115,14 @@ DbConnection.addConnection = function(config)
 	return conConfig.connection_id
 end
 --- Get all databases with their schema and tables using the current connection user credentials
----@param conId string
+---@param conId string | nil
 ---@return DatabaseCatalog[]
 DbConnection.getAllDbCatalogs = function(conId)
+	if conId == nil then
+		local msg = "ConId shouldn't be nill"
+		vim.notify(msg, vim.log.levels.ERROR)
+		error(msg)
+	end
 	return Api.getRequest(Api.path.getAll .. "?connection_id=$conId", { conId = conId })
 end
 local function initText()

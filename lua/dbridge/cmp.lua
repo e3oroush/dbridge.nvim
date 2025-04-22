@@ -32,16 +32,57 @@ end
 
 -- complete function
 function source:complete(params, callback)
-	--- The following only handles one database and and one schema
-	--- if we have more than one database or schema, we should handle it differently
 	local q = params.context.cursor_before_line
 	-- TODO: get it from cache
 	local conId = dbridge.getActiveConnectionId()
-	-- a connId should have already some information for current db and schema
-	-- we should use this information
+	-- NOTE: a connId should have already some information for current db and schema
+	-- we should use this information instead of calling it again
 	local dbCatalog = dbconnection.getAllDbCatalogs(conId)
-	local tables = {}
 	local items = {}
+	local function insertTable(tableName, schemaName)
+		table.insert(items, {
+			label = tableName,
+			detail = "Table in " .. schemaName,
+			type = NodeUtils.NodeTypes.TABLE,
+			kind = vim.lsp.protocol.CompletionItemKind.Property,
+		})
+	end
+
+	local function insertSchema(schemaName, dbname)
+		table.insert(items, {
+			label = schemaName,
+			detail = "Schema in " .. dbname,
+			type = NodeUtils.NodeTypes.SCHEMA,
+			kind = vim.lsp.protocol.CompletionItemKind.Property,
+		})
+	end
+	local function insertDb(dbname)
+		table.insert(items, {
+			label = dbname,
+			detail = "Database",
+			type = NodeUtils.NodeTypes.DATABASE,
+			kind = vim.lsp.protocol.CompletionItemKind.Property,
+		})
+	end
+	local function insertColumns(tableName, schemaName)
+		local columns = Api.getRequest(
+			Api.path.getColumns .. Api.pathArgs,
+			{ conId = conId, tableName = tableName, schemaName = schemaName }
+		)
+		for _, column in ipairs(columns) do
+			table.insert(items, {
+				label = column,
+				kind = vim.lsp.protocol.CompletionItemKind.Property,
+				type = NodeUtils.NodeTypes.COLUMN,
+				detail = "column in table " .. tableName,
+			})
+		end
+	end
+
+	-- initializing the table dbnames, schema names and table names
+	-- TODO: the schema names and table names should be dependent on the current connection
+	-- meaning, if a schema is selected, we only return the tables on that schema
+	local tables = {}
 	local dbnames = {}
 	local schemas = {}
 	for _, db in ipairs(dbCatalog) do
@@ -53,51 +94,28 @@ function source:complete(params, callback)
 			end
 		end
 	end
-	-- local dbname = "db"
-	-- local schema = "schema"
-	-- if #dbCatalog == 1 then
-	-- 	local schemas = dbCatalog[1].schemas
-	-- 	dbname = dbCatalog[1].name
-	-- 	if #schemas == 1 then
-	-- 		tables = schemas[1].tables
-	-- 		schema = schemas[1].name
-	-- 	end
-	-- end
+	local qParts = vim.split(q, " ")
 	-- count the number of dots
-	local queryParts = vim.split(q, "%.")
+	local queryParts = vim.split(qParts[#qParts], "%.")
 	if #queryParts == 1 then
+		-- there's no dot
 		-- if we're looking for tables
 		for _, value in ipairs(tables) do
 			local parts = vim.split(value, "%.")
-			P(parts)
-			table.insert(items, {
-				label = parts[3],
-				detail = "Table in " .. parts[1] .. "." .. parts[2],
-				type = NodeUtils.NodeTypes.TABLE,
-				kind = vim.lsp.protocol.CompletionItemKind.Property,
-			})
+			insertTable(parts[3], parts[1] .. "." .. parts[2])
 		end
 		-- if we're looking for schemas
 		for _, value in ipairs(schemas) do
 			local parts = vim.split(value, "%.")
-			table.insert(items, {
-				label = parts[2],
-				detail = "Schema in " .. parts[1],
-				type = NodeUtils.NodeTypes.SCHEMA,
-				kind = vim.lsp.protocol.CompletionItemKind.Property,
-			})
+			insertSchema(parts[2], parts[1])
 		end
 		-- if we're looking for databases
 		for _, value in ipairs(dbnames) do
 			local parts = vim.split(value, "%.")
-			table.insert(items, {
-				label = parts[1],
-				detail = "Database",
-				type = NodeUtils.NodeTypes.DATABASE,
-				kind = vim.lsp.protocol.CompletionItemKind.Property,
-			})
+			insertDb(parts[1])
 		end
 	elseif #queryParts == 2 then
+		-- there's one dot
 		local firstPart = queryParts[1]
 		local dbnameItem = containsString(dbnames, firstPart)
 		local schemaItem = containsString(schemas, firstPart)
@@ -105,13 +123,9 @@ function source:complete(params, callback)
 		if dbnameItem then
 			-- first part is a db name
 			for _, schema in ipairs(schemas) do
-				if isSubstr(firstPart, vim.split(schema, "%.")[1]) then
-					table.insert(items, {
-						label = vim.split(schema, "%.")[2],
-						detail = "Schema in " .. firstPart,
-						type = NodeUtils.NodeTypes.SCHEMA,
-						kind = vim.lsp.protocol.CompletionItemKind.Property,
-					})
+				local parts = vim.split(schema, "%.")
+				if isSubstr(firstPart, parts[1]) then
+					insertSchema(parts[2], firstPart)
 				end
 			end
 		elseif schemaItem then
@@ -119,29 +133,39 @@ function source:complete(params, callback)
 			for _, tblName in ipairs(tables) do
 				local parts = vim.split(tblName, "%.")
 				if isSubstr(firstPart, parts[2]) then
-					table.insert(items, {
-						label = parts[3],
-						detail = "Table in " .. parts[1] .. "." .. parts[2],
-						type = NodeUtils.NodeTypes.TABLE,
-						kind = vim.lsp.protocol.CompletionItemKind.Property,
-					})
+					insertTable(parts[3], parts[1] .. "." .. parts[2])
 				end
 			end
 		elseif tableItem then
 			-- first part is a table
 			-- we're looking for columns
 			local parts = vim.split(tableItem, "%.")
-			local columns = Api.getRequest(Api.path.getColumns .. Api.pathArgs, { conId = conId, tableName = parts[3] })
-			for _, column in ipairs(columns) do
-				table.insert(items, {
-					label = column,
-					kind = vim.lsp.protocol.CompletionItemKind.Property,
-					type = NodeUtils.NodeTypes.COLUMN,
-					detail = "column in table " .. parts[3],
-				})
-			end
+			insertColumns(parts[3], parts[2])
 		end
+	elseif #queryParts == 3 then
+		-- there's two dots
+		local firstPart = queryParts[1]
+		local secondPart = queryParts[2]
+		local dbnameItem = containsString(dbnames, firstPart)
+		local schemaItem = containsString(schemas, firstPart)
+		if dbnameItem then
+			-- first part is a db name
+			for _, tblName in ipairs(tables) do
+				local parts = vim.split(tblName, "%.")
+				if isSubstr(secondPart, parts[2]) then
+					insertTable(parts[3], parts[1] .. "." .. parts[2])
+				end
+			end
+		elseif schemaItem then
+			-- first part is a schema name
+			insertColumns(secondPart, firstPart)
+		end
+	elseif #queryParts == 4 then
+		local secondPart = queryParts[2]
+		local thirdPart = queryParts[3]
+		insertColumns(thirdPart, secondPart)
 	end
+
 	callback({ items = items, isInComplete = false })
 end
 
