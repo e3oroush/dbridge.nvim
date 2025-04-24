@@ -1,6 +1,7 @@
 local dbridge = require("dbridge")
 local dbconnection = require("dbridge.dbconnection")
 local Api = require("dbridge.api")
+local SqlExtractor = require("dbridge.sql_extractor")
 local source = {}
 
 -- Constructor for the source
@@ -33,6 +34,7 @@ end
 -- complete function
 function source:complete(params, callback)
 	local q = params.context.cursor_before_line
+	print(SqlExtractor.get_sql_query())
 	-- TODO: get it from cache
 	local conId = dbridge.getActiveConnectionId()
 	-- NOTE: a connId should have already some information for current db and schema
@@ -95,7 +97,7 @@ function source:complete(params, callback)
 		end
 	end
 	local qParts = vim.split(q, " ")
-	-- count the number of dots
+	-- count the number of dots from the word under the cursor
 	local queryParts = vim.split(qParts[#qParts], "%.")
 	if #queryParts == 1 then
 		-- there's no dot
