@@ -2,6 +2,7 @@ local dbridge = require("dbridge")
 local dbconnection = require("dbridge.dbconnection")
 local Api = require("dbridge.api")
 local SqlExtractor = require("dbridge.sql_extractor")
+
 local source = {}
 
 -- Constructor for the source
@@ -34,8 +35,10 @@ end
 -- complete function
 function source:complete(params, callback)
 	local q = params.context.cursor_before_line
-	print(SqlExtractor.get_sql_query())
-	-- TODO: get it from cache
+	local sqlStatement = SqlExtractor.get_sql_query()
+	local tableNameInSqlStatement = SqlExtractor.extractTable(sqlStatement)
+	local doGetColumns = SqlExtractor.isGetColumns()
+	-- TODO: get this from cache
 	local conId = dbridge.getActiveConnectionId()
 	-- NOTE: a connId should have already some information for current db and schema
 	-- we should use this information instead of calling it again
@@ -87,87 +90,117 @@ function source:complete(params, callback)
 	local tables = {}
 	local dbnames = {}
 	local schemas = {}
+	local columns = {}
 	for _, db in ipairs(dbCatalog) do
 		table.insert(dbnames, db.name)
 		for _, sc in ipairs(db.schemas) do
 			table.insert(schemas, db.name .. "." .. sc.name)
 			for _, tbl in ipairs(sc.tables) do
 				table.insert(tables, db.name .. "." .. sc.name .. "." .. tbl)
+				local cols = Api.getRequest(
+					Api.path.getColumns .. Api.pathArgs,
+					{ conId = conId, tableName = tbl, schemaName = sc.name }
+				)
+				for _, col in ipairs(cols) do
+					table.insert(columns, tbl .. "." .. col)
+				end
 			end
 		end
 	end
-	local qParts = vim.split(q, " ")
-	-- count the number of dots from the word under the cursor
-	local queryParts = vim.split(qParts[#qParts], "%.")
-	if #queryParts == 1 then
-		-- there's no dot
-		-- if we're looking for tables
-		for _, value in ipairs(tables) do
-			local parts = vim.split(value, "%.")
-			insertTable(parts[3], parts[1] .. "." .. parts[2])
-		end
-		-- if we're looking for schemas
-		for _, value in ipairs(schemas) do
-			local parts = vim.split(value, "%.")
-			insertSchema(parts[2], parts[1])
-		end
-		-- if we're looking for databases
-		for _, value in ipairs(dbnames) do
-			local parts = vim.split(value, "%.")
-			insertDb(parts[1])
-		end
-	elseif #queryParts == 2 then
-		-- there's one dot
-		local firstPart = queryParts[1]
-		local dbnameItem = containsString(dbnames, firstPart)
-		local schemaItem = containsString(schemas, firstPart)
-		local tableItem = containsString(tables, firstPart)
-		if dbnameItem then
-			-- first part is a db name
-			for _, schema in ipairs(schemas) do
-				local parts = vim.split(schema, "%.")
-				if isSubstr(firstPart, parts[1]) then
-					insertSchema(parts[2], firstPart)
-				end
-			end
-		elseif schemaItem then
-			-- first part is a schema
-			for _, tblName in ipairs(tables) do
+	-- the logic is to determine whether return column name or table name
+	if doGetColumns then
+		if #tableNameInSqlStatement > 0 then
+			local tblName = containsString(tables, tableNameInSqlStatement)
+			if tblName then
 				local parts = vim.split(tblName, "%.")
-				if isSubstr(firstPart, parts[2]) then
-					insertTable(parts[3], parts[1] .. "." .. parts[2])
-				end
+				insertColumns(parts[3], parts[2])
 			end
-		elseif tableItem then
-			-- first part is a table
-			-- we're looking for columns
-			local parts = vim.split(tableItem, "%.")
-			insertColumns(parts[3], parts[2])
-		end
-	elseif #queryParts == 3 then
-		-- there's two dots
-		local firstPart = queryParts[1]
-		local secondPart = queryParts[2]
-		local dbnameItem = containsString(dbnames, firstPart)
-		local schemaItem = containsString(schemas, firstPart)
-		if dbnameItem then
-			-- first part is a db name
-			for _, tblName in ipairs(tables) do
-				local parts = vim.split(tblName, "%.")
-				if isSubstr(secondPart, parts[2]) then
-					insertTable(parts[3], parts[1] .. "." .. parts[2])
-				end
+		else
+			-- all columns
+			for _, column in ipairs(columns) do
+				local parts = vim.split(column, "%.")
+				table.insert(items, {
+					label = parts[2],
+					kind = vim.lsp.protocol.CompletionItemKind.Property,
+					type = NodeUtils.NodeTypes.COLUMN,
+					detail = "column in table " .. parts[1],
+				})
 			end
-		elseif schemaItem then
-			-- first part is a schema name
-			insertColumns(secondPart, firstPart)
 		end
-	elseif #queryParts == 4 then
-		local secondPart = queryParts[2]
-		local thirdPart = queryParts[3]
-		insertColumns(thirdPart, secondPart)
+	else
+		-- return dbnames, schema or table names
+		local qParts = vim.split(q, " ")
+		-- count the number of dots from the word under the cursor
+		local queryParts = vim.split(qParts[#qParts], "%.")
+		if #queryParts == 1 then
+			-- there's no dot (.)
+			-- if we're looking for tables
+			for _, value in ipairs(tables) do
+				local parts = vim.split(value, "%.")
+				insertTable(parts[3], parts[1] .. "." .. parts[2])
+			end
+			-- if we're looking for schemas
+			for _, value in ipairs(schemas) do
+				local parts = vim.split(value, "%.")
+				insertSchema(parts[2], parts[1])
+			end
+			-- if we're looking for databases
+			for _, value in ipairs(dbnames) do
+				local parts = vim.split(value, "%.")
+				insertDb(parts[1])
+			end
+		elseif #queryParts == 2 then
+			-- there's one dot
+			local firstPart = queryParts[1]
+			local dbnameItem = containsString(dbnames, firstPart)
+			local schemaItem = containsString(schemas, firstPart)
+			local tableItem = containsString(tables, firstPart)
+			if dbnameItem then
+				-- first part is a db name
+				for _, schema in ipairs(schemas) do
+					local parts = vim.split(schema, "%.")
+					if isSubstr(firstPart, parts[1]) then
+						insertSchema(parts[2], firstPart)
+					end
+				end
+			elseif schemaItem then
+				-- first part is a schema
+				for _, tblName in ipairs(tables) do
+					local parts = vim.split(tblName, "%.")
+					if isSubstr(firstPart, parts[2]) then
+						insertTable(parts[3], parts[1] .. "." .. parts[2])
+					end
+				end
+			elseif tableItem then
+				-- first part is a table
+				-- we're looking for columns
+				local parts = vim.split(tableItem, "%.")
+				insertColumns(parts[3], parts[2])
+			end
+		elseif #queryParts == 3 then
+			-- there's two dots
+			local firstPart = queryParts[1]
+			local secondPart = queryParts[2]
+			local dbnameItem = containsString(dbnames, firstPart)
+			local schemaItem = containsString(schemas, firstPart)
+			if dbnameItem then
+				-- first part is a db name
+				for _, tblName in ipairs(tables) do
+					local parts = vim.split(tblName, "%.")
+					if isSubstr(secondPart, parts[2]) then
+						insertTable(parts[3], parts[1] .. "." .. parts[2])
+					end
+				end
+			elseif schemaItem then
+				-- first part is a schema name
+				insertColumns(secondPart, firstPart)
+			end
+		elseif #queryParts == 4 then
+			local secondPart = queryParts[2]
+			local thirdPart = queryParts[3]
+			insertColumns(thirdPart, secondPart)
+		end
 	end
-
 	callback({ items = items, isInComplete = false })
 end
 

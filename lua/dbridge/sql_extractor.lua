@@ -1,3 +1,4 @@
+local FileUtils = require("dbridge.file_utils")
 local M = {}
 
 --- Extracts the SQL query surrounding the cursor in the specified buffer.
@@ -96,6 +97,77 @@ function M.get_sql_query(bufnr, cursor)
 	end
 
 	return table.concat(query_lines, "\n"):gsub("^%s+", ""):gsub("%s+$", "") -- Trim leading/trailing whitespace
+end
+
+--- Depending on the cursor position determines if we should return column name or not
+--- If it's false, it means we should suggest table, schema or db names as completions
+--- @param bufnr number|nil Buffer number (defaults to current buffer if nil)
+--- @param cursor table|nil Cursor position {row, col} (0-based); defaults to current cursor if nil
+--- @return boolean
+M.isGetColumns = function(bufnr, cursor)
+	-- Default to current buffer and cursor position if not provided
+	bufnr = bufnr or vim.api.nvim_get_current_buf()
+	cursor = cursor or vim.api.nvim_win_get_cursor(0)
+	-- Get lines up to the cursor (limit to 5 lines before for performance)
+	local start_line = math.max(0, cursor[1] - 5)
+	local lines = vim.api.nvim_buf_get_lines(bufnr, start_line, cursor[1] + 1, false)
+	if not lines or #lines == 0 then
+		return false
+	end
+	-- Get the current line up to the cursor
+	local current_line = lines[#lines]
+	local col = cursor[2] + 1 -- Convert to 1-based for string indexing
+	current_line = current_line:sub(1, col - 1) -- Text before cursor
+	lines[#lines] = current_line
+
+	-- Join lines, strip whitespace and newlines, and normalize to lowercase
+	local text_before = table.concat(lines, " "):gsub("%s+", " "):lower()
+	if text_before == "" then
+		return false
+	end
+	-- Split into words (non-whitespace sequences)
+	local words = {}
+	for word in text_before:gmatch("%w+") do
+		table.insert(words, word)
+	end
+	local line = lines[#lines]
+	if not line then
+		return false
+	end
+	-- Get the character under the cursor
+	local char_under_cursor = line:sub(col - 1, col)
+
+	-- Get the last word before the cursor
+	local last_word = words[#words]
+	if char_under_cursor:match("%S") ~= nil then
+		-- if the character under the cursor is not space, it means it might be a column name
+		if #words < 2 then
+			return false
+		elseif last_word == "from" then
+			return false
+		end
+		last_word = words[#words - 1]
+	else
+		if not last_word then
+			return false
+		end
+	end
+	return last_word == "select"
+end
+local function strip(str)
+	if not str then
+		return ""
+	end
+	return str:gsub("^%s+", ""):gsub("%s+$", "")
+end
+--- Extract tabel name using python script
+--- For this function dbridge python lib needs to be installed
+--- It will call dbridge.scripts.extract_table query
+--- @param sqlStatement string a select query in string
+M.extractTable = function(sqlStatement)
+	local cmd = "echo " .. sqlStatement .. " | python -m dbridge.scripts.extract_table "
+	local output = FileUtils.runCmd(cmd)
+	return strip(output)
 end
 
 return M
