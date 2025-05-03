@@ -35,7 +35,7 @@ end
 -- complete function
 function source:complete(params, callback)
 	local q = params.context.cursor_before_line
-	local sqlStatement = SqlExtractor.get_sql_query()
+	local sqlStatement = SqlExtractor.getSqlQuery()
 	local tableNameInSqlStatement = SqlExtractor.extractTable(sqlStatement)
 	local doGetColumns = SqlExtractor.isGetColumns()
 	-- TODO: get this from cache
@@ -110,6 +110,7 @@ function source:complete(params, callback)
 	-- the logic is to determine whether return column name or table name
 	if doGetColumns then
 		if #tableNameInSqlStatement > 0 then
+			-- TODO: exclude the columns in the sql statement from all columns
 			local tblName = containsString(tables, tableNameInSqlStatement)
 			if tblName then
 				local parts = vim.split(tblName, "%.")

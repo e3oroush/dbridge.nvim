@@ -5,7 +5,7 @@ local M = {}
 --- @param bufnr number|nil Buffer number (defaults to current buffer if nil)
 --- @param cursor table|nil Cursor position {row, col} (0-based); defaults to current cursor if nil
 --- @return string The extracted SQL query
-function M.get_sql_query(bufnr, cursor)
+function M.getSqlQuery(bufnr, cursor)
 	-- Default to current buffer and cursor position if not provided
 	bufnr = bufnr or vim.api.nvim_get_current_buf()
 	cursor = cursor or vim.api.nvim_win_get_cursor(0)
@@ -22,7 +22,7 @@ function M.get_sql_query(bufnr, cursor)
 	--- @param start_col number 0-based column to start from
 	--- @param direction string "backward" or "forward"
 	--- @return number, number Row and column (0-based) of the boundary
-	local function find_boundary(start_row, start_col, direction)
+	local function findBoundry(start_row, start_col, direction)
 		local current_row, current_col = start_row, start_col
 
 		while true do
@@ -68,7 +68,7 @@ function M.get_sql_query(bufnr, cursor)
 	if row == 0 and col == 0 then
 		start_row, start_col = 0, 0
 	else
-		start_row, start_col = find_boundary(row, col, "backward")
+		start_row, start_col = findBoundry(row, col, "backward")
 		if start_col ~= 0 then
 			if start_col < #lines[start_row + 1] then
 				start_col = start_col + 1 -- Move past semicolon
@@ -84,7 +84,7 @@ function M.get_sql_query(bufnr, cursor)
 	if row == #lines - 1 and col == #lines[#lines] then
 		end_row, end_col = #lines - 1, #lines[#lines]
 	else
-		end_row, end_col = find_boundary(row, col, "forward")
+		end_row, end_col = findBoundry(row, col, "forward")
 	end
 
 	-- Extract the query text
@@ -134,25 +134,35 @@ M.isGetColumns = function(bufnr, cursor)
 	if not line then
 		return false
 	end
-	-- Get the character under the cursor
-	local char_under_cursor = line:sub(col - 1, col)
-
-	-- Get the last word before the cursor
-	local last_word = words[#words]
-	if char_under_cursor:match("%S") ~= nil then
-		-- if the character under the cursor is not space, it means it might be a column name
-		if #words < 2 then
+	for i = #words, 1, -1 do
+		local word = words[i]
+		if word == "select" then
+			return true
+		elseif word == "from" then
 			return false
-		elseif last_word == "from" then
-			return false
-		end
-		last_word = words[#words - 1]
-	else
-		if not last_word then
-			return false
+		elseif word == "where" then
+			return true
 		end
 	end
-	return last_word == "select"
+	-- -- Get the character under the cursor
+	-- local char_under_cursor = line:sub(col - 1, col)
+	--
+	-- -- Get the last word before the cursor
+	-- local last_word = words[#words]
+	-- if char_under_cursor:match("%S") ~= nil then
+	-- 	-- if the character under the cursor is not space, it means it might be a column name
+	-- 	if #words < 2 then
+	-- 		return false
+	-- 	elseif last_word == "from" then
+	-- 		return false
+	-- 	end
+	-- 	last_word = words[#words - 1]
+	-- else
+	-- 	if not last_word then
+	-- 		return false
+	-- 	end
+	-- end
+	-- return last_word == "select"
 end
 local function strip(str)
 	if not str then
@@ -164,6 +174,7 @@ end
 --- For this function dbridge python lib needs to be installed
 --- It will call dbridge.scripts.extract_table query
 --- @param sqlStatement string a select query in string
+--- @return string table name or empty string
 M.extractTable = function(sqlStatement)
 	local cmd = "echo " .. sqlStatement .. " | python -m dbridge.scripts.extract_table "
 	local output = FileUtils.runCmd(cmd)
