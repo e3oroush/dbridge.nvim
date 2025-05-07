@@ -1,6 +1,19 @@
 local config = require("dbridge.config")
 local FileUtils = require("dbridge.file_utils")
-Api = {}
+local Api = {}
+local cache = {}
+--- Get value from cache or runCmd and cache it
+--- @param cmd string
+--- @return table json encoded return of the api call
+local function getFromCache(cmd)
+	local value = cache[cmd]
+	if value then
+		return value
+	end
+	value = vim.fn.json_decode(FileUtils.runCmd(cmd))
+	cache[cmd] = value
+	return value
+end
 
 Api.path = {
 	getAll = "get_dbs_schemas_tables",
@@ -17,7 +30,7 @@ Api.getRequest = function(path, args)
 	end
 	local getUrl = url .. path
 	local cmd = "curl --silent --no-buffer -X GET '" .. getUrl .. "'"
-	return vim.fn.json_decode(FileUtils.runCmd(cmd))
+	return getFromCache(cmd)
 end
 Api.postRequest = function(path, data)
 	local cmd = "curl --silent --no-buffer -X POST " .. url .. path .. " -H 'Content-Type: application/json'"
@@ -26,7 +39,10 @@ Api.postRequest = function(path, data)
 		body = string.gsub(body, "'", "'\"'")
 		cmd = cmd .. " -d '" .. body .. "'"
 	end
-	return vim.fn.json_decode(FileUtils.runCmd(cmd))
+	return getFromCache(cmd)
+end
+Api.clearCache = function()
+	cache = {}
 end
 
 return Api

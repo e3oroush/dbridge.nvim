@@ -4,7 +4,7 @@ local FileUtils = require("dbridge.file_utils")
 local Popup = require("nui.popup")
 local Config = require("dbridge.config")
 local Event = require("nui.utils.autocmd").event
-DbConnection = {}
+local DbConnection = {}
 
 ---@class connectionConfig
 ---@field name string

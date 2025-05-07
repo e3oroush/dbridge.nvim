@@ -5,6 +5,7 @@ local QueryEditor = require("dbridge.query_editor")
 local QueryResult = require("dbridge.query_result")
 local Dbconnection = require("dbridge.dbconnection")
 local HelpPanel = require("dbridge.help")
+local Api = require("dbridge.api")
 local M = {}
 M.setup = function(opts)
 	opts = opts or {}
@@ -140,6 +141,9 @@ M.init = function()
 	end
 end
 
+vim.api.nvim_create_user_command("DbridgeClearCache", function()
+	Api.clearCache()
+end, {})
 vim.api.nvim_create_user_command("Dbxplore", function()
 	if vim.g.dbridge_loaded ~= 1 then
 		vim.cmd("tabnew")
