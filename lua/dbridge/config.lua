@@ -9,6 +9,7 @@ local init = function()
 	fileUtils.safeMkdir(rootPath)
 	fileUtils.safeMkdir(rootPath)
 	fileUtils.safeMkdir(queriesPath)
+	fileUtils.safeMkdir(connectionsPath)
 end
 
 init()
