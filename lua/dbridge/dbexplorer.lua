@@ -78,7 +78,7 @@ local function handleEnterConnectionNode(node)
 		DbExplorer.tree:add_node(storedQueriesNode, node:get_id())
 		local conId = Dbconnection.addConnection(node.connectionConfig)
 		node.connectionConfig.conId = conId
-		local allDbCatalogs = DbConnection.getAllDbCatalogs(conId)
+		local allDbCatalogs = Dbconnection.getAllDbCatalogs(conId)
 		for _, dbCataolg in ipairs(allDbCatalogs) do
 			local dbname = dbCataolg.name
 			local dbNode = NodeUtils.NewNodeFactory(" " .. dbname, NodeUtils.NodeTypes.DATABASE)

@@ -1,4 +1,4 @@
-FileUtils = {}
+local FileUtils = {}
 --- Scan a given directory and returns all the files inside it (excluding directories)
 ---@param dirPath string
 ---@return string[] files table as a list of file names inside dir
@@ -27,5 +27,15 @@ FileUtils.safeMkdir = function(path, flags, prot)
 	if vim.fn.isdirectory(path) == 0 then
 		vim.fn.mkdir(path, flags, prot)
 	end
+end
+
+FileUtils.runCmd = function(cmd)
+	local handle = io.popen(cmd)
+	assert(handle ~= nil, "coudln't open io.popen to run command")
+	-- Read the output
+	local result = handle:read("*a")
+	-- Close the handle
+	handle:close()
+	return result
 end
 return FileUtils

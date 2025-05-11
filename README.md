@@ -80,6 +80,35 @@ The database should be supported by [dbridge](https://github.com/e3oroush/dbridg
 }
 ```
 
+### Enabling dbridge-cmp
+
+To add autocompletion, you need `hrsh7th/nvim-cmp` plugin. You can set it using Lazy pluging manager:
+
+```lua
+return {
+  'hrsh7th/nvim-cmp',
+  event = 'InsertEnter',
+  config = function()
+    local cmp = require 'cmp'
+    cmp.setup {
+      formatting = {
+        format = function(entry, vim_item)
+          if entry.source.name == 'dbridge' then
+            return require('dbridge.cmp_format').build_format(entry, vim_item)
+          end
+          return vim_item
+        end,
+      },
+    }
+    cmp.setup.filetype({ 'sql' }, {
+      sources = {
+        { name = 'dbridge' },
+      },
+    }
+}
+
+```
+
 ## License
 
 `dbridge.nvim` is distributed under the terms of the [MIT](https://spdx.org/licenses/MIT.html) license.
