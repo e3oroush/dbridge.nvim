@@ -126,7 +126,8 @@ DbConnection.getAllDbCatalogs = function(conId)
 	return Api.getRequest(Api.path.getAll .. "?connection_id=$conId", { conId = conId })
 end
 local function initText()
-	local config = { name = "test_db", adapter = "sqlite", uri = "", connection_config = {} }
+	local config =
+		{ name = "test_db", adapter = "sqlite", uri = "", connection_config = { user = "user", host = "localhost" } }
 	return vim.fn.json_encode(config)
 end
 

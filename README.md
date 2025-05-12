@@ -16,6 +16,10 @@ A neovim plugin for [dbridge](https://github.com/e3oroush/dbridge) to interact w
 
 You should also make sure to install [dbridge](https://github.com/e3oroush/dbridge) server app and run it.
 
+```bash
+pip install dbridge
+```
+
 - packer.nvim:
 
   ```lua
@@ -39,7 +43,7 @@ You should also make sure to install [dbridge](https://github.com/e3oroush/dbrid
       "MunifTanjim/nui.nvim",
     },
     config = function()
-      require("dbee").setup()
+      require("dbridge").setup()
     end,
   },
   ```
