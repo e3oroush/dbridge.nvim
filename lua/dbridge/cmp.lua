@@ -99,7 +99,7 @@ function source:complete(params, callback)
 				table.insert(tables, db.name .. "." .. sc.name .. "." .. tbl)
 				local cols = Api.getRequest(
 					Api.path.getColumns .. Api.pathArgs,
-					{ conId = conId, tableName = tbl, schemaName = sc.name }
+					{ conId = conId, tableName = tbl, schemaName = sc.name, dbname = db.name }
 				)
 				for _, col in ipairs(cols) do
 					table.insert(columns, tbl .. "." .. col)
