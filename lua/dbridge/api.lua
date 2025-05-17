@@ -18,6 +18,7 @@ end
 Api.path = {
 	getAll = "get_dbs_schemas_tables",
 	getColumns = "get_columns",
+	getAllColumns = "get_all_columns",
 	queryTable = "query_table",
 	connection = "connections",
 }
