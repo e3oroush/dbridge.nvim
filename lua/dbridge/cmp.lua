@@ -99,11 +99,9 @@ function source:complete(params, callback)
 		)
 		for _, col in ipairs(cols) do
 			table.insert(columns, col)
-			print(col)
 		end
 		for _, sc in ipairs(db.schemas) do
 			table.insert(schemas, db.name .. "." .. sc.name)
-			-- TODO: get all tables in a single query
 			for _, tbl in ipairs(sc.tables) do
 				table.insert(tables, db.name .. "." .. sc.name .. "." .. tbl)
 			end
