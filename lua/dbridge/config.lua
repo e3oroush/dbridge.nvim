@@ -19,6 +19,8 @@ local defaultConfig = {
 	connectionsPath = connectionsPath,
 	queriesPath = queriesPath,
 	isEnabled = true,
+	currentConnection = nil,
+	currentDbCatalog = nil,
 }
 -- this will make sure if the current run time has dbridge python package installed
 local retCode = tonumber(vim.trim(fileUtils.runCmd("python -c 'import dbridge' 2> /dev/null; echo $?")))

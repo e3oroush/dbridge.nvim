@@ -42,11 +42,8 @@ function source:complete(params, callback)
 	local sqlStatement = SqlExtractor.getSqlQuery()
 	local tableNameInSqlStatement = SqlExtractor.extractTable(sqlStatement)
 	local doGetColumns = SqlExtractor.isGetColumns()
-	-- TODO: get this from cache
-	local conId = dbridge.getActiveConnectionId()
-	-- NOTE: a connId should have already some information for current db and schema
-	-- we should use this information instead of calling it again
-	local dbCatalog = dbconnection.getAllDbCatalogs(conId)
+	local conId = Config.connectionId
+	local dbCatalog = Config.currentDbCatalog
 	local items = {}
 	local function insertTable(tableName, schemaName)
 		table.insert(items, {

@@ -4,6 +4,7 @@ local Api = require("dbridge.api")
 local Dbconnection = require("dbridge.dbconnection")
 local FileUtils = require("dbridge.file_utils")
 local NodeUtils = require("dbridge.node_utils")
+local Config = require("dbridge.config")
 
 DbExplorer = {}
 
@@ -79,6 +80,7 @@ local function handleEnterConnectionNode(node)
 		local conId = Dbconnection.addConnection(node.connectionConfig)
 		node.connectionConfig.conId = conId
 		local allDbCatalogs = Dbconnection.getAllDbCatalogs(conId)
+		node.connectionConfig.dbCataolg = allDbCatalogs
 		for _, dbCataolg in ipairs(allDbCatalogs) do
 			local dbname = dbCataolg.name
 			local dbNode = NodeUtils.NewNodeFactory(" " .. dbname, NodeUtils.NodeTypes.DATABASE)
@@ -106,6 +108,8 @@ local function handleEnterConnectionNode(node)
 	vim.api.nvim_win_set_cursor(0, { 1, 0 })
 	NodeUtils.toggleNodeExpansion(node)
 	DbExplorer.tree:render()
+	Config.connectionId = node.connectionConfig.conId
+	Config.currentDbCatalog = node.connectionConfig.dbCataolg
 end
 --- Get table names from server and create tree node
 ---@param node NuiTreeNode
