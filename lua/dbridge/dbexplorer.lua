@@ -121,6 +121,7 @@ local function handleGetTableColumns(node)
 	node.loaded = true
 	NodeUtils.toggleNodeExpansion(node)
 	DbExplorer.tree:render()
+	Config.currentTableArgs = node.args
 end
 --- Handles actions and cases when user hit enter in a node
 --- There are different cases need to be handled. When user enter:

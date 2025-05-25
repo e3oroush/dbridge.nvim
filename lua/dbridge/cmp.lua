@@ -73,7 +73,7 @@ function source:complete(params, callback)
 	local function insertColumns(tableName, schemaName)
 		local columns = Api.getRequest(
 			Api.path.getColumns .. Api.pathArgs,
-			{ conId = conId, tableName = tableName, schemaName = schemaName }
+			{ conId = conId, tableName = tableName, schemaName = schemaName, dbname = Config.currentTableArgs.dbname }
 		)
 		for _, column in ipairs(columns) do
 			table.insert(items, {
