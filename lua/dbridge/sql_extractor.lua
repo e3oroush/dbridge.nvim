@@ -144,25 +144,6 @@ M.isGetColumns = function(bufnr, cursor)
 			return true
 		end
 	end
-	-- -- Get the character under the cursor
-	-- local char_under_cursor = line:sub(col - 1, col)
-	--
-	-- -- Get the last word before the cursor
-	-- local last_word = words[#words]
-	-- if char_under_cursor:match("%S") ~= nil then
-	-- 	-- if the character under the cursor is not space, it means it might be a column name
-	-- 	if #words < 2 then
-	-- 		return false
-	-- 	elseif last_word == "from" then
-	-- 		return false
-	-- 	end
-	-- 	last_word = words[#words - 1]
-	-- else
-	-- 	if not last_word then
-	-- 		return false
-	-- 	end
-	-- end
-	-- return last_word == "select"
 end
 local function strip(str)
 	if not str then

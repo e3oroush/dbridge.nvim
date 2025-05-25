@@ -2,6 +2,7 @@ local dbridge = require("dbridge")
 local dbconnection = require("dbridge.dbconnection")
 local Api = require("dbridge.api")
 local SqlExtractor = require("dbridge.sql_extractor")
+local Config = require("dbridge.config")
 
 local source = {}
 
@@ -34,6 +35,9 @@ end
 
 -- complete function
 function source:complete(params, callback)
+	if not Config.isEnabled then
+		return
+	end
 	local q = params.context.cursor_before_line
 	local sqlStatement = SqlExtractor.getSqlQuery()
 	local tableNameInSqlStatement = SqlExtractor.extractTable(sqlStatement)
